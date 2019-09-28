@@ -51,7 +51,7 @@ switch (command) {
 
         } else {
 
-        axios.get("https://rest.bandsintown.com/artists/" + bitArtist + "/events?app_id=codingbootcamp")
+        axios.get("https://rest.bandsintown.com/artists/" + bitArtist + "events/?app_id=codingbootcamp")
 
         .then(function(response){
                 
