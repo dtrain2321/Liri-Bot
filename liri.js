@@ -1,164 +1,408 @@
+
 require("dotenv").config();
 
-//vars
-var keys = require("./keys.js");
 var fs = require("fs");
-var request = require("request");
-var Twitter = require("twitter");
-//var Spotify = require('spotify-web-api-node');
-var Spotify = require('node-spotify-api');
-//creates log.txt file
-var filename = './log.txt';
-//NPM module used to write output to console and log.txt simulatneously
-var log = require('simple-node-logger').createSimpleFileLogger(filename);
-log.setLevel('all');
 
-//argv[2] chooses users actions; argv[3] is input parameter, ie; movie title
-var userCommand = process.argv[2];
-var secondCommand = process.argv[3];
+var keys = require("./keys.js");
 
-//concatenate multiple words in 2nd user argument
-for (var i = 4; i < process.argv.length; i++) {
-    secondCommand += '+' + process.argv[i];
-}
+var Spotify = require("node-spotify-api");
 
-// Fetch Spotify Keys
+var axios = require("axios");
+
+var moment = require('moment');
+
 var spotify = new Spotify(keys.spotify);
 
-// Writes to the log.txt file
-var getArtistNames = function (artist) {
-    return artist.name;
-};
+var command = process.argv[2];
 
-// Function for running a Spotify search - Command is spotify-this-song
-var getSpotify = function (songName) {
-    if (songName === undefined) {
-        songName = "What's my age again";
-    }
+var songName = process.argv[3];
 
-    spotify.search(
-        {
-            type: "track",
-            query: userCommand
-        },
-        function (err, data) {
-            if (err) {
-                console.log("Error occurred: " + err);
-                return;
-            }
+var bitArtist = process.argv[3];
 
-            var songs = data.tracks.items;
+var movie = process.argv[3];
 
-            for (var i = 0; i < songs.length; i++) {
-                console.log(i);
-                console.log("artist(s): " + songs[i].artists.map(getArtistNames));
-                console.log("song name: " + songs[i].name);
-                console.log("preview song: " + songs[i].preview_url);
-                console.log("album: " + songs[i].album.name);
-                console.log("-----------------------------------");
-            }
+var logStart = "\n] LIRI BOT [\n";
+
+var logEnd = "\n] -******** e n d ********- [\n";
+
+switch (command) {
+
+    case "concert-this":
+
+        if(bitArtist == null) {
+
+            var text = (logStart + command + " :: " + bitArtist + "\n" + "I'm sorry nobody is playing in your neighborhood, please try your search again..." + logEnd);
+
+            console.log("I'm sorry nobody is playing in your neighborhood, please try your search again...");
+
+            fs.appendFile("log.txt", text, function(err) {
+
+                if(err) {
+
+                    console.log(err);
+
+                } else {
+
+                    console.log("Liri Log has been updated...");
+
+                }
+
+            })
+
+        } else {
+
+        axios.get("https://rest.bandsintown.com/artists/" + bitArtist + "/events?app_id=codingbootcamp")
+
+        .then(function(response){
+                
+                console.log(bitArtist + " is playing at the...");
+
+                console.log("Name of the venue: " + response.data[0].venue.name);
+
+                console.log("Location: " + response.data[0].venue.city);
+
+                console.log("Date of event: " + moment(response.data[0].datetime).format("MM/DD/YYYY"));
+
+                var text = [logStart + command + " :: " + bitArtist + "\n" + "Name of the venue: " + response.data[0].venue.name + "\n" + "Location: " + response.data[0].venue.city + "\n" + "Date of event: " + moment(response.data[0].datetime).format("MM/DD/YYYY") + logEnd];
+
+                fs.appendFile("log.txt", text, function (err) {
+
+                    if (err) {
+
+                        console.log(err);
+
+                    } else {
+
+                        console.log("Liri Log has been updated...");
+                    }
+
+                });
+
+            },
+                function (error) {
+                    
+                    if (error.response) {
+                        
+                        console.log(error.response.data);
+
+                        console.log(error.response.status);
+
+                        console.log(error.response.headers);
+
+                    } else if (error.request) {
+
+                        console.log(error.request);
+
+                    } else {
+    
+                        console.log('Error', error.message);
+
+                    }
+
+                    console.log(error.config);
+                }
+            )
         }
-    );
-};
 
-//Switch command
-function mySwitch(userCommand) {
+        break;
+        
+    case "spotify-this-song" :
 
-    //choose which statement (userCommand) to switch to and execute
-    switch (userCommand) {
+        if (songName == null) {
 
-        case "my-tweets":
-            getTweets();
-            break;
+            if (command) {
 
-        case "spotify-this-song":
-            getSpotify();
-            break;
+                spotify.request('https://api.spotify.com/v1/tracks/3DYVWvPh3kGwPasp7yjahc')
 
-        case "movie-this":
-            getMovie();
-            break;
+                    .then(function (data) {
 
-        case "do-what-it-says":
-            doWhat();
-            break;
-    }
+                        var artists = data.artists[0].name;
 
-    //Twitter - command: my-tweets
-    function getTweets() {
-        //Fetch Twitter Keys
-        var client = new Twitter(keys.twitter);
-        //Set my account to pull Tweets from
-        var screenName = { screen_name: 'captnwalker' };
-        //GET tweets
-        client.get('statuses/user_timeline', screenName, function (error, tweets, response) {
-            //throw error
-            if (error) throw error;
+                        var songTitle = data.name;
 
-            //Loop and Log first 20 tweets
-            for (var i = 0; i < tweets.length; i++) {
-                var date = tweets[i].created_at;
-                logOutput("@captnwalker: " + tweets[i].text + " Created At: " + date.substring(0, 19));
-                //seperator
-                logOutput("-----------------------");
+                        var songUrl = data.preview_url;
+
+                        var songAlbum = data.album.name;
+
+                        console.log("Artist(s): " + data.artists[0].name);
+
+                        console.log("The Song's Name: " + data.name);
+
+                        console.log("Spotify Preview Link: " + data.preview_url);
+
+                        console.log("Album: " + data.album.name);
+
+                        var text = [logStart + process.argv[2] + " :: " + process.argv[3] + "\n" + "Artist(s): " + artists + "\n" + "The Song's Name: " + songTitle + "\n" + "Spotify Preview Link: " + songUrl + "\n" + "Album: " + songAlbum + logEnd];
+
+                        fs.appendFile("log.txt", text, function (err) {
+
+                            if (err) {
+
+                                console.log(err);
+
+                            }
+
+                            else {
+
+                                console.log("Liri Log has been updated...");
+                            }
+
+                        });
+
+                    })
+
+                    .catch(function (err) {
+
+                        console.error('Error occurred: ' + err);
+
+                    });
             }
-        });
-    }
 
-    //OMDB Movie - command: movie-this
-    function getMovie() {
-        // OMDB Movie - this MOVIE base code is from class files, I have modified for more data and assigned parse.body to a Var
-        var movieName = secondCommand;
-        // Then run a request to the OMDB API with the movie specified
-        var queryUrl = "http://www.omdbapi.com/?t=" + movieName + "&y=&plot=short&tomatoes=true&apikey=trilogy";
+        } else {
 
-        request(queryUrl, function (error, response, body) {
+            if (command) {
 
-            // If the request is successful = 200
-            if (!error && response.statusCode === 200) {
-                var body = JSON.parse(body);
+                spotify.search({
 
-                //Simultaneously output to console and log.txt via NPM simple-node-logger
-                logOutput('================ Movie Info ================');
-                logOutput("Title: " + body.Title);
-                logOutput("Release Year: " + body.Year);
-                logOutput("IMdB Rating: " + body.imdbRating);
-                logOutput("Country: " + body.Country);
-                logOutput("Language: " + body.Language);
-                logOutput("Plot: " + body.Plot);
-                logOutput("Actors: " + body.Actors);
-                logOutput("Rotten Tomatoes Rating: " + body.Ratings[2].Value);
-                logOutput("Rotten Tomatoes URL: " + body.tomatoURL);
-                logOutput('==================THE END=================');
+                    type: "track",
 
-            } else {
-                //else - throw error
-                console.log("Error occurred.")
-            }
-            //Response if user does not type in a movie title
-            if (movieName === "Mr. Nobody") {
-                console.log("-----------------------");
-                console.log("If you haven't watched 'Mr. Nobody,' then you should: http://www.imdb.com/title/tt0485947/");
-                console.log("It's on Netflix!");
-            }
-        });
-    }
+                    query: songName,
 
-    //Function for command do-what-it-says; reads and splits random.txt file
-    //command: do-what-it-says
-    function doWhat() {
-        //Read random.txt file
+                    limit: 10
+                },
+
+                function (err, data) {
+
+                    if (err) {
+
+                        console.log('Error occurred: ' + err);
+
+                        return;  
+
+                    } else {
+
+                        var songInfo = data.tracks.items[0];
+
+                        var artists = songInfo.artists[0].name;
+
+                        var songTitle = songInfo.name;
+
+                        var songUrl = songInfo.preview_url;
+
+                        var songAlbum = songInfo.album.name;
+
+                        console.log("Artist(s): " + artists);
+
+                        console.log("The Song's Name: " + songInfo.name);
+
+                        console.log("Spotify Preview Link: " + songInfo.preview_url);
+
+                        console.log("Album: " + songInfo.album.name);
+
+                        fs.appendFile("log.txt", text, function (err) {
+
+                            if (err) {
+
+                                console.log(err);
+
+                            }
+
+                            else {
+
+                                console.log("Liri Log has been updated...");
+                            }
+
+                        });
+                    };
+                })
+            };
+        }
+
+        break;
+
+    case "movie-this" :
+        
+        if (movie == null) {
+
+            axios.get("https://omdbapi.com/?t=mr.nobody&apikey=trilogy")
+
+                .then(function (resp) {
+                    //console.log(resp.data);
+                    console.log("Movie Title: " + resp.data.Title);
+                    console.log("Year Released: " + resp.data.Year);
+                    console.log("IMDB Rating: " + resp.data.imdbRating);
+                    console.log("Rotten Tomatoes Rating: " + resp.data.Ratings[1].Value);
+                    console.log("Country Produced: " + resp.data.Country);
+                    console.log("Language of the Movie: " + resp.data.Language);
+                    console.log("Movie Plot: " + resp.data.Plot);
+                    console.log("Movie Actors: " + resp.data.Actors);
+
+                    var text = [logStart + process.argv[2] + " :: " + process.argv[3] + "\n" + "Movie Title: " + resp.data.Title + "\n" + "Year Released: " + resp.data.Year + "\n" + "IMDB Rating: " + resp.data.imdbRating + "\n" + "Rotten Tomatoes Rating: " + resp.data.Ratings[1].Value + "\n" + "Country Produced: " + resp.data.Country + "\n" + "Language of the Movie: " + resp.data.Language + "\n" + "Movie Plot: " + resp.data.Plot + logEnd];
+
+                    fs.appendFile("log.txt", text, function (err) {
+
+                        if (err) {
+
+                            console.log(err);
+
+                        }
+
+                        else {
+
+                            console.log("Liri Log has been updated...");
+                        }
+
+                    });
+
+                }, function (error) {
+
+                    if (error.resp) {
+                        
+                        console.log(error.resp.data);
+                        console.log(error.resp.status);
+                        console.log(error.resp.headers);
+
+                    } else if (error.request) {
+                       
+                        console.log(error.request);
+
+                    } else {
+                        
+                        console.log('Error', error.message);
+                    }
+                        console.log(error.config);
+                })
+
+        } else {
+
+            axios.get("https://omdbapi.com/?t=" + movie  + "&apikey=trilogy")
+            
+            .then(function(resp) {
+            
+                console.log("Movie Title: " + resp.data.Title);
+                console.log("Year Released: " + resp.data.Year);
+                console.log("IMDB Rating: " + resp.data.imdbRating);
+                console.log("Rotten Tomatoes Rating: " + resp.data.Ratings[1].Value);
+                console.log("Country Produced: " + resp.data.Country);
+                console.log("Language of the Movie: " + resp.data.Language);
+                console.log("Movie Plot: " + resp.data.Plot);
+                console.log("Movie Actors: " + resp.data.Actors);
+
+                fs.appendFile("log.txt", text, function (err) {
+
+                    if (err) {
+
+                        console.log(err);
+
+                    }
+
+                    else {
+
+                        console.log("Liri Log has been updated...");
+                    }
+
+                });
+
+            }, function(error) {
+
+                if (error.resp) {
+                    
+                    console.log(error.resp.data);
+                    console.log(error.resp.status);
+                    console.log(error.resp.headers);
+
+                } else if (error.request) {
+                
+                    console.log(error.request);
+
+                } else {
+                    
+                    console.log('Error', error.message);
+
+                }
+
+                console.log(error.config);
+            })
+        }
+
+    break;
+
+    case "do-what-it-says" :
         fs.readFile("random.txt", "utf8", function (error, data) {
-            if (!error);
-            console.log(data.toString());
-            //split text with comma delimiter
-            var cmds = data.toString().split(',');
+
+            if (error) {
+                return console.log(error);
+            }
+
+            var dataArr = data.split(",");
+
+            var song = dataArr[1];
+
+            spotify.search({
+
+                type: "track",
+
+                query: song,
+
+                limit: 1
+            },
+
+            function (err, data) {
+
+                if (err) {
+
+                    console.log('Error occurred: ' + err);
+
+                    return;
+
+                } else {
+
+                    var songInfo = data.tracks.items[0];
+
+                    var artists = songInfo.artists[0].name;
+
+                    var songTitle = songInfo.name;
+
+                    var songUrl = songInfo.preview_url;
+
+                    var songAlbum = songInfo.album.name;
+
+                    console.log("Artist(s): " + artists);
+
+                    console.log("The Song's Name: " + songInfo.name);
+
+                    console.log("Spotify Preview Link: " + songInfo.preview_url);
+
+                    console.log("Album: " + songInfo.album.name);
+
+                    var text = [logStart + process.argv[2] + " :: " + artists + "\n" + "The Song's Name: " + songTitle + "\n" + "Spotify Preview Link: " + songUrl + "\n" + "Album: " + songAlbum + logEnd];
+
+                    fs.appendFile("log.txt", text, function (err) {
+
+                        if (err) {
+
+                            console.log(err);
+
+                        }
+
+                        else {
+
+                            console.log("Liri Log has been updated...");
+
+                        }
+
+                    });
+
+                };
+
+            })
+            
         });
-    }
+        
+    break;
 
+    default : 
 
-
-}   //Closes mySwitch func - Everything except the call must be within this scope
-
-//Call mySwitch function
-mySwitch(userCommand);
+        console.log("I'm so sorry, but your search returned no valuable results...");
+    
+} // end switch
