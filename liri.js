@@ -28,7 +28,7 @@ switch (command) {
                 }
             })
         } else {
-            axios.get("https://rest.bandsintown.com/artists/" + bitArtist + "events/?app_id=codingbootcamp")
+            axios.get("https://rest.bandsintown.com/artists/" + bitArtist +      "/events?app_id=codingbootcamp")
                 .then(function (response) {
                     console.log(bitArtist + " is playing at the...");
                     console.log("Name of the venue: " + response.data[0].venue.name);
